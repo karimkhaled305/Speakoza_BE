@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Test</title>
+</head>
+<body>
+    <h1>Text-to-Speech Backend Tester</h1>
+
+    <div>
+        <label for="textInput">Enter Text:</label><br>
+        <textarea id="textInput" rows="4" cols="50" placeholder="Enter text to convert to speech"></textarea>
+    </div>
+    <button id="generateAudioBtn">Generate Audio</button>
+    <p id="statusMessage"></p>
+    <div id="audioContainer"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000'; // Replace with your backend URL
+
+        // Handle Generate Audio
+        document.getElementById('generateAudioBtn').addEventListener('click', async () => {
+            const text = document.getElementById('textInput').value;
+            const statusMessage = document.getElementById('statusMessage');
+            const audioContainer = document.getElementById('audioContainer');
+
+            if (!text) {
+                statusMessage.textContent = 'Please enter text to convert.';
+                return;
+            }
+
+            statusMessage.textContent = 'Generating audio...';
+            try {
+                // Send text to backend
+                const response = await fetch(`${API_BASE_URL}/generate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3NDVlNGRlNzliZjBjNTFkZGU0MTI0MyIsIm5hbWUiOiJLYXJpbSBLaGFsZWQiLCJpYXQiOjE3MzI3OTY0MTJ9.C1uvfg1M4SB2hEh597sviTmPKewW9WXpQpjjXqtefgA'
+                    },
+                    body: JSON.stringify({ content: text }),
+                });
+
+                if (!response.ok) throw new Error('Failed to generate audio');
+
+                const data = await response.json();
+                const audioId = data.audioFile.gridFSId;
+
+                statusMessage.textContent = 'Audio generated successfully! Retrieving audio...';
+
+                // Retrieve the audio file
+                const audioResponse = await fetch(`${API_BASE_URL}/getAudio/6748622d80f854129c44f919`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3NDVlNGRlNzliZjBjNTFkZGU0MTI0MyIsIm5hbWUiOiJLYXJpbSBLaGFsZWQiLCJpYXQiOjE3MzI3OTY0MTJ9.C1uvfg1M4SB2hEh597sviTmPKewW9WXpQpjjXqtefgA'
+                    },
+                });
+                if (!audioResponse.ok) throw new Error('Failed to retrieve audio');
+
+                const audioBlob = await audioResponse.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                // Display the audio player
+                audioContainer.innerHTML = `
+                    <h3>Generated Audio:</h3>
+                    <audio controls>
+                        <source src="${audioUrl}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                `;
+                statusMessage.textContent = 'Audio ready!';
+            } catch (error) {
+                console.error(error);
+                statusMessage.textContent = 'An error occurred. Please try again.';
+            }
+        });
+    </script>
+</body>
+</html>
